@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bulk Email Sender</title>
+    <style>
+      /* Global Styles */
+
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        /* Light gray to dark blue gradient */
+        background: linear-gradient(to bottom right, #85888a, #818386);
+        transition: background-color 0.3s, color 0.3s;
+      }
+      .form-container {
+        background: #c1c1c1;
+        padding: 30px;
+        border-radius: 15px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        width: 100%;
+        max-width: 600px;
+        transition: all 0.3s ease;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      .form-group label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .form-group input,
+      .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid gray;
+        background-color: hsl(0, 17%, 94%);
+        color: rgb(0, 0, 0);
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      .form-group textarea {
+        resize: none;
+      }
+      .form-container button {
+        padding: 10px 15px;
+        background: #007bff;
+        color: #ffffff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      .form-container button:hover {
+        background: #0056b3;
+      }
+      .progress-bar {
+        width: 100%;
+        background-color: #e0e0e0;
+        border-radius: 5px;
+        margin-top: 15px;
+      }
+      .progress-bar span {
+        display: block;
+        height: 10px;
+        background-color: #4caf50;
+        border-radius: 5px;
+      }
+
+      .dark-mode body {
+        background-color: hsl(240, 4%, 13%);
+        color: hsl(240, 10%, 30%);
+      }
+      .dark-mode .form-container {
+        background-color: hsl(240, 4%, 19%);
+        color: white;
+      }
+      .dark-mode .form-container button {
+        background-color: #5a40d9;
+
+        color: white;
+        border-radius: 8px;
+        border-color: #a19e9e;
+      }
+
+      .toggle-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: #9d9ea0;
+        color: #ffffff;
+        border: none;
+        padding: 10px;
+        border-radius: 30px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .toggle-btn span {
+        margin-left: 5px;
+        font-size: 14px;
+      }
+      .toggle-btn:hover {
+        background: #7b7f84;
+      }
+      .toggle-btn .switch {
+        width: 34px;
+        height: 20px;
+        background-color: #ccc;
+        border-radius: 50px;
+        position: relative;
+        transition: background-color 0.3s;
+      }
+      .toggle-btn .switch span {
+        width: 16px;
+        height: 16px;
+        background-color: white;
+        border-radius: 50%;
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        transition: left 0.3s;
+      }
+      .toggle-btn.dark .switch {
+        background-color: #4fab4c;
+      }
+      .toggle-btn.dark .switch span {
+        left: 16px;
+      }
+    </style>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <button class="toggle-btn" onclick="toggleDarkMode()">
+      <div class="switch"><span></span></div>
+    </button>
+    <div class="form-container">
+      <h2>Bulk Email Sender</h2>
+      <form id="emailForm" onsubmit="return false;">
+        <div class="form-group">
+          <label for="subject">Email Subject:</label>
+          <input type="text" id="subject" required />
+        </div>
+        <div class="form-group">
+          <label for="content">Email Content:</label>
+          <textarea id="content" rows="5" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="recipients">Recipient Emails (comma-separated):</label>
+          <textarea id="recipients" rows="3" required></textarea>
+        </div>
+        <div id="uploadbanner" class="form-group" enctype="multipart/form-data">
+          <input id="fileupload" name="myfile" type="file" />
+        </div>
+        <button type="button" class="sendbtn" onclick="sendEmails()">
+          Send Emails
+        </button>
+      </form>
+      <div class="progress-bar" id="progressBar" style="display: none">
+        <span id="progress"></span>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      let darkMode = false;
+
+      const showToast = (message, type) => {
+        const toastContainer = document.body; // You can create a container for toast if needed
+
+        // Create the toast element
+        const toastElement = document.createElement("div");
+        toastElement.classList.add(
+          "toast",
+          "align-items-center",
+          `text-bg-${type}`,
+          "border-0",
+          "position-fixed",
+          "top-0",
+          "start-50",
+          "translate-middle-x", // Position it at the center horizontally
+          "mt-3" // Add a small margin from the top
+        );
+
+        toastElement.setAttribute("role", "alert");
+        toastElement.setAttribute("aria-live", "assertive");
+        toastElement.setAttribute("aria-atomic", "true");
+        toastElement.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">${message}</div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
+
+        toastContainer.appendChild(toastElement);
+
+        // Initialize and show the toast using Bootstrap's Toast class
+        const toast = new bootstrap.Toast(toastElement);
+        toast.show();
+
+        // Hide the toast after 2 seconds
+        setTimeout(() => {
+          toast.hide();
+          toastElement.remove(); // Remove the toast from the DOM
+        }, 2000); // 2000ms = 2 seconds
+      };
+
+      function toggleDarkMode() {
+        darkMode = !darkMode;
+        document.body.classList.toggle("dark-mode", darkMode);
+        const toggleButton = document.querySelector(".toggle-btn");
+        toggleButton.classList.toggle("dark", darkMode);
+      }
+      const setLoading = () => {
+        const button = document.getElementsByClassName("sendbtn")[0];
+        button.innerHTML = `
+            <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+            <span role="status">Loading...</span>
+          `;
+
+        button.disabled = true;
+      };
+
+      const removeLoading = () => {
+        const button = document.getElementsByClassName("sendbtn")[0];
+        button.innerHTML = "Send Email";
+        button.disabled = false;
+      };
+
+      async function sendEmails() {
+        const subject = document.getElementById("subject").value;
+        const content = document.getElementById("content").value;
+        const recipients = document
+          .getElementById("recipients")
+          .value.split(",")
+          .map((email) => email.trim());
+
+        const resume = document.getElementById("fileupload");
+
+        if (!subject || !content || recipients.length === 0 || !resume) {
+          showToast("Please fill all the validated fields!", "danger");
+          return;
+        }
+
+        const progressBar = document.getElementById("progressBar");
+        const progress = document.getElementById("progress");
+        progressBar.style.display = "block";
+
+        try {
+          for (let i = 0; i < recipients.length; i++) {
+            const progressPercentage = ((i + 1) / recipients.length) * 100;
+            progress.style.width = progressPercentage + "%";
+
+            // Check if a file is selected
+            const file = resume.files[0];
+            if (!file) {
+              console.error("No file selected.");
+              continue;
+            }
+
+            const filename = file.name;
+
+            const fileURL = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = function (event) {
+                resolve(event.target.result); // Resolve with the base64 data
+              };
+              reader.onerror = function (error) {
+                reject(error); // Reject if there's an error reading the file
+              };
+
+              // Read the file as a Data URL (base64)
+              reader.readAsDataURL(file);
+            });
+
+            // Send the email with the base64-encoded file in the request body
+            setLoading();
+
+            const response = await fetch("http://localhost:5000/send-emails", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                subject,
+                content,
+                recipients: [recipients[i]],
+                resume: fileURL, // Send the base64 file data
+                filename: filename, // Send the filename
+              }),
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+              console.log(result);
+            } else {
+              console.error(await response.text());
+            }
+
+            // Update the progress bar after each email is sent
+            progress.style.width = `${((i + 1) / recipients.length) * 100}%`;
+
+            // Check if you want to show a success message for all emails or individually
+            if (i === recipients.length - 1) {
+              setTimeout(
+                () => showToast("Emails sent successfully!", "success"),
+                1000
+              );
+              document.getElementById("emailForm").reset(); // Reset form after submission
+            }
+          }
+
+          removeLoading();
+        } catch (error) {
+          console.error("Error sending emails:", error);
+          showToast("An error occurred while sending emails.", "danger");
+          removeLoading();
+        }
+      }
+    </script>
+  </body>
+</html>
