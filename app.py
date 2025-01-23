@@ -77,11 +77,12 @@ def send_emails():
             # Send the email
             server.sendmail(sender_email, recipient, message.as_string())
 
-        server.quit()
         return jsonify({"message": "Emails sent successfully!"}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    finally:
+        server.quit()
 
 
 if __name__ == '__main__':
