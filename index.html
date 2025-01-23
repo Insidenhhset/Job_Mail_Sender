@@ -91,9 +91,31 @@
         border-color: #a19e9e;
       }
 
+      .Header {
+        position: absolute;
+        width: 100%;
+        top: 0;
+        right: 20px;
+      }
+
+      .totalEmailSent {
+        position: absolute;
+        top: 10px;
+        right: 120px;
+        padding: 10px 20px;
+
+        color: #ffffff;
+        border: 1px solid #b7a5a5;
+        border-radius: 8px;
+        font-size: 16px;
+      }
+      .totalEmailSent:hover {
+        box-shadow: 0 0 10px 0 #f1dcdc;
+      }
+
       .toggle-btn {
         position: absolute;
-        top: 20px;
+        top: 10px;
         right: 20px;
         background: #9d9ea0;
         color: #ffffff;
@@ -143,23 +165,43 @@
     />
   </head>
   <body>
-    <button class="toggle-btn" onclick="toggleDarkMode()">
-      <div class="switch"><span></span></div>
-    </button>
+    <div class="Header">
+      <div class="totalEmailSent">
+        Total Emails Sent: <span id="totalEmailSent">0</span>
+      </div>
+      <button class="toggle-btn" onclick="toggleDarkMode()">
+        <div class="switch"><span></span></div>
+      </button>
+    </div>
     <div class="form-container">
       <h2>Bulk Email Sender</h2>
       <form id="emailForm" onsubmit="return false;">
         <div class="form-group">
           <label for="subject">Email Subject:</label>
-          <input type="text" id="subject" required />
+          <input
+            type="text"
+            id="subject"
+            placeholder="Enter your Subject"
+            required
+          />
         </div>
         <div class="form-group">
           <label for="content">Email Content:</label>
-          <textarea id="content" rows="5" required></textarea>
+          <textarea
+            id="content"
+            rows="5"
+            placeholder="Enter Mail Content"
+            required
+          ></textarea>
         </div>
         <div class="form-group">
           <label for="recipients">Recipient Emails (comma-separated):</label>
-          <textarea id="recipients" rows="3" required></textarea>
+          <textarea
+            id="recipients"
+            rows="3"
+            placeholder="Enter Recipient Mails"
+            required
+          ></textarea>
         </div>
         <div id="uploadbanner" class="form-group" enctype="multipart/form-data">
           <input id="fileupload" name="myfile" type="file" />
@@ -177,6 +219,9 @@
 
     <script>
       let darkMode = false;
+      let totalEmailSent =
+        parseInt(localStorage.getItem("totalEmailSent")) || 0;
+      document.getElementById("totalEmailSent").innerText = totalEmailSent;
 
       const showToast = (message, type) => {
         const toastContainer = document.body; // You can create a container for toast if needed
@@ -227,17 +272,29 @@
       const setLoading = () => {
         const button = document.getElementsByClassName("sendbtn")[0];
         button.innerHTML = `
-            <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
-            <span role="status">Loading...</span>
-          `;
-
+    <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+    <span role="status" aria-live="polite">Sending...</span>
+  `;
+        document.getElementById("subject").disabled = true;
+        document.getElementById("content").disabled = true;
+        document.getElementById("recipients").disabled = true;
+        document.getElementById("fileupload").disabled = true;
         button.disabled = true;
+        button.style.cursor = "not-allowed";
+        button.style.pointerEvents = "none";
       };
 
       const removeLoading = () => {
         const button = document.getElementsByClassName("sendbtn")[0];
-        button.innerHTML = "Send Email";
-        button.disabled = false;
+
+        document.getElementById("subject").disabled = false;
+        document.getElementById("content").disabled = false;
+        document.getElementById("recipients").disabled = false;
+        document.getElementById("fileupload").disabled = false;
+        button.innerHTML = "Send Email"; // Restore the original button text
+        button.disabled = false; // Enable the button
+        button.style.cursor = "pointer"; // Restore the pointer cursor style
+        button.style.pointerEvents = "auto"; // Ensure the button is clickable again
       };
 
       async function sendEmails() {
@@ -261,6 +318,8 @@
 
         try {
           for (let i = 0; i < recipients.length; i++) {
+            totalEmailSent++;
+            localStorage.setItem("totalEmailSent", totalEmailSent);
             const progressPercentage = ((i + 1) / recipients.length) * 100;
             progress.style.width = progressPercentage + "%";
 
@@ -319,11 +378,11 @@
                 () => showToast("Emails sent successfully!", "success"),
                 1000
               );
+              removeLoading();
               document.getElementById("emailForm").reset(); // Reset form after submission
             }
           }
-
-          removeLoading();
+          document.getElementById("totalEmailSent").innerText = totalEmailSent;
         } catch (error) {
           console.error("Error sending emails:", error);
           showToast("An error occurred while sending emails.", "danger");
